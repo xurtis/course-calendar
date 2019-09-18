@@ -9,6 +9,8 @@ use std::env::args;
 use std::fs::File;
 use std::io::{BufReader, Read};
 
+const DATE_FMT: &'static str = "%k:%M %A, %d %B, %Y";
+
 fn main() -> Result<(), Error> {
     let path = args()
         .skip(1)
@@ -21,6 +23,35 @@ fn main() -> Result<(), Error> {
     course.generate_repeats()?;
 
     println!("{:#?}", course);
+
+    for event in course.events() {
+        let title = format!(
+            "{} {}",
+            course.code().to_owned(),
+            event.title(),
+        );
+        println!("{}", title);
+        let mut bar = String::new();
+        for _ in 0..title.len() {
+            bar.push('=');
+        }
+        println!("{}", bar);
+        println!("Start: {}", event.start().format(DATE_FMT));
+        println!("End: {}", event.end().format(DATE_FMT));
+        if let Some(location) = event.location() {
+            println!("Location: {}", location);
+        }
+        for presenter in event.presenters() {
+            println!("Presented by: {}", presenter);
+        }
+        if let Some(link) = event.link() {
+            println!("Link: {}", link);
+        }
+        if let Some(description) = event.description() {
+            println!("\n{}", description);
+        }
+        println!();
+    }
 
     Ok(())
 }
