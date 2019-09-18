@@ -17,7 +17,8 @@ fn main() -> Result<(), Error> {
     let mut course_toml = String::new();
     BufReader::new(File::open(&path)?).read_to_string(&mut course_toml)?;
 
-    let course: course::Course = toml::from_str(&course_toml)?;
+    let mut course: course::Course = toml::from_str(&course_toml)?;
+    course.generate_repeats()?;
 
     println!("{:#?}", course);
 

@@ -4,6 +4,8 @@ use chrono::{offset::FixedOffset, DateTime, Duration};
 use serde::{de, Deserialize, Deserializer};
 use url::Url;
 
+use failure::{Error, format_err};
+
 use std::fmt;
 
 /// All of the events for a particular course
@@ -15,6 +17,33 @@ pub struct Course {
     weeks: Vec<Week>,
     #[serde(rename = "assignment", default)]
     assignments: Vec<Assignment>,
+}
+
+impl Course {
+    /// Generate all repeated sessions in the course
+    pub fn generate_repeats(&mut self) -> Result<(), Error> {
+        let mut sessions = Vec::new();
+
+        for session in &self.repeat_sessions {
+            let first_week = if let Some(first) = session.weeks.get(0) {
+                self.weeks.get(*first).ok_or(format_err!("Requested repeat of {} session in non-existent week {}", session.kind, first))?.start
+            } else {
+                continue;
+            };
+
+            for week_no in &session.weeks {
+                let week = self.weeks.get(*week_no).ok_or(format_err!("Tried to schedule repeat of {} session in non-existent week {}", session.kind, week_no))?;
+                let duplicate = session.duplicate(first_week, week.start);
+                sessions.push((*week_no, duplicate));
+            }
+        }
+
+        for (week, session) in sessions.drain(..) {
+            self.weeks[week].sessions.push(session);
+        }
+
+        Ok(())
+    }
 }
 
 /// A week with interactive sessions
@@ -52,7 +81,22 @@ struct RepeatSession {
     first: DateTime<FixedOffset>,
     #[serde(deserialize_with = "deserialize_duration")]
     duration: Duration,
-    weeks: Vec<u64>,
+    weeks: Vec<usize>,
+}
+
+impl RepeatSession {
+    fn duplicate(&self, first_week: DateTime<FixedOffset>, week_start: DateTime<FixedOffset>) -> Session {
+        let offset = self.first - first_week;
+
+        Session {
+            kind: self.kind.clone(),
+            title: self.title.clone(),
+            presenters: self.presenters.clone(),
+            location: self.location.clone(),
+            time: week_start + offset,
+            duration: self.duration,
+        }
+    }
 }
 
 /// An assignment with presentations and submissions
@@ -82,7 +126,7 @@ struct Submission {
 struct Presentation {
     name: String,
     session: String,
-    weeks: Vec<u64>,
+    weeks: Vec<usize>,
 }
 
 struct DateTimeVisitor;
