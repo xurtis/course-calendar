@@ -273,7 +273,7 @@ impl<'c> Event<'c> {
         }
     }
 
-    pub fn location(&self) -> Option<&str> {
+    pub fn location(&self) -> Option<&'c str> {
         match self.base {
             EventBase::Session(s) => s.location(),
             EventBase::Submission(_, _) => None,
@@ -281,7 +281,7 @@ impl<'c> Event<'c> {
         }
     }
 
-    pub fn presenters(&self) -> impl Iterator<Item = &str> {
+    pub fn presenters(&self) -> impl Iterator<Item = &'c str> {
         match self.base {
             EventBase::Session(s) => s.presenters().into_iter(),
             EventBase::Submission(_, _) => Vec::new().into_iter(),
@@ -289,7 +289,7 @@ impl<'c> Event<'c> {
         }
     }
 
-    pub fn description(&self) -> Option<&str> {
+    pub fn description(&self) -> Option<&'c str> {
         match self.base {
             EventBase::Session(_) => None,
             EventBase::Submission(_, s @Submission { description: Some(_), .. }) => s.description(),
@@ -299,7 +299,7 @@ impl<'c> Event<'c> {
         }
     }
 
-    pub fn link(&self) -> Option<&Url> {
+    pub fn link(&self) -> Option<&'c Url> {
         match self.base {
             EventBase::Session(_) => None,
             EventBase::Submission(a, _) => Some(&a.link),
